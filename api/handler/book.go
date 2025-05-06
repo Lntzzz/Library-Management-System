@@ -6,6 +6,7 @@ import (
 	"Library-Management-System/api/dto/response"
 	"Library-Management-System/api/service"
 	respUtil "Library-Management-System/api/util/response"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
@@ -25,7 +26,7 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteBook(w http.ResponseWriter, r *http.Request) {
-	bookId := r.PostFormValue("bookId")
+	bookId := mux.Vars(r)["bookId"]
 	option := &request.DeleteBookOption{
 		Id: bookId,
 	}
@@ -39,35 +40,41 @@ func DeleteBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateBook(w http.ResponseWriter, r *http.Request) {
-	bookId := r.PostFormValue("bookId")
-	bookName := r.PostFormValue("bookName")
-	bookAuthor := r.PostFormValue("bookAuthor")
+	bookId := mux.Vars(r)["bookId"] // 从 URL 中获取 bookId
+
+	// 从请求体中解析更新的字段
+	bookName := r.FormValue("bookName")
+	bookAuthor := r.FormValue("bookAuthor")
+
+	// 构造更新选项
 	option := &request.UpdateBookOption{
 		Id:     bookId,
 		Name:   bookName,
 		Author: bookAuthor,
 	}
-	if ret, oe := service.Book.Update(option); oe != nil {
+
+	// 调用服务层更新方法
+	ret, oe := service.Book.Update(option)
+	if oe != nil {
 		respUtil.Response(w, oe, nil)
 		return
-	} else {
-		respUtil.Response(w, nil, response.RespData{Result: ret})
-		return
 	}
+
+	// 返回成功响应
+	respUtil.Response(w, nil, response.RespData{Result: ret})
 }
 
 func DescribeBook(w http.ResponseWriter, r *http.Request) {
-	bookId := r.PostFormValue("bookId")
+	bookId := mux.Vars(r)["bookId"] // 从 URL 中获取 bookId
 	option := &request.DescribeBookOption{
 		Id: bookId,
 	}
-	if ret, oe := service.Book.Describe(option); oe != nil {
+	ret, oe := service.Book.Describe(option)
+	if oe != nil {
 		respUtil.Response(w, oe, nil)
 		return
-	} else {
-		respUtil.Response(w, nil, response.RespData{Result: ret})
-		return
 	}
+	respUtil.Response(w, nil, response.RespData{Result: ret})
 }
 
 func DescribeBooks(w http.ResponseWriter, r *http.Request) {
