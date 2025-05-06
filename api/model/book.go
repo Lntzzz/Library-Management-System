@@ -1,13 +1,10 @@
 package model
 
-import "time"
-
 type Book struct {
-	Id          string    `db:"id"`
-	Name        string    `db:"name"`
-	Author      string    `db:"author"`
-	Stock       int       `db:"stock"`
-	PublishedAt time.Time `db:"published_at"`
+	Id     string `db:"id"`
+	Name   string `db:"name"`
+	Author string `db:"author"`
+	Stock  int    `db:"stock"`
 }
 
 func (book Book) GetId() string {
@@ -38,14 +35,5 @@ func (book Book) GetStock() int {
 
 func (book Book) SetStock(stock int) Book {
 	book.Stock = stock
-	return book
-}
-
-func (book Book) GetPublishedAt() time.Time {
-	return book.PublishedAt
-}
-
-func (book Book) SetPublishedAt(publishedAt time.Time) Book {
-	book.PublishedAt = publishedAt
 	return book
 }
