@@ -1,32 +1,22 @@
 package db
 
 import (
-	"fmt"
-	"log"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 	"time"
-
-	"Library-Management-System/api/conf"
-	//"Library-Management-System/api/log"
-	"Library-Management-System/api/util/db"
 )
 
-func Init(mySQLConf *conf.MySQLConf, logger log.Logger) error {
-	newDBConf := db.Conf{
-		Dialect:         "mysql",
-		User:            mySQLConf.User,
-		Password:        mySQLConf.Passwd,
-		Url:             fmt.Sprintf("%s:%d", mySQLConf.Ip, mySQLConf.Port),
-		DbName:          mySQLConf.DB,
-		CharSet:         "utf8mb4",
-		MaxOpen:         mySQLConf.MaxConnection,
-		MaxIdle:         10,
-		ConnMaxLifetime: time.Duration(mySQLConf.MaxLifetime) * time.Second,
-		Debug:           mySQLConf.DebugSQL,
-		Plural:          "disable",
+var Db *sql.DB
+
+func init() {
+	db, err := sql.Open("mysql", "root:995774@/book_manage_system")
+	if err != nil {
+		panic(err)
 	}
-	dbClient := db.CreateClient(&newDBConf)
-	InitBookDao(dbClient)
-	InitLoanRecordDao(dbClient)
-	InitUserDao(dbClient)
-	return nil
+	db.SetConnMaxLifetime(time.Minute * 3)
+	// 设置与数据库建立连接的最大数目
+	db.SetMaxOpenConns(10)
+	// 设置连接池中最大空闲连接数
+	db.SetMaxIdleConns(10)
+	Db = db
 }
