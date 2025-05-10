@@ -4,21 +4,24 @@ import (
 	"crypto/rand"
 	"math/big"
 	mathrandom "math/rand"
-	"strconv"
-	"strings"
 	"time"
 )
 
 const (
-	bookPrefix   = "book-"
-	UserIdPrefix = "user-"
+	bookPrefix         = "book-"
+	UserIdPrefix       = "user-"
+	BorrowRecordPrefix = "borrow-"
 )
 
 var character = []byte("abcdefghijklmnopqrstuvwxyz0123456789")
 var chLen = len(character)
 
-func NewBookId() string {
+func GenBookId() string {
 	return bookPrefix + Uuid()
+}
+
+func GenBorrowRecordId() string {
+	return BorrowRecordPrefix + Uuid()
 }
 
 func NewUserId() string {
@@ -39,30 +42,4 @@ func Uuid() string {
 		buf[i] = character[random.Int64()]
 	}
 	return string(buf)
-}
-
-const (
-	recvMsgPrefix     = "recvmsg-"
-	recvBillMsgPrefix = "recvbillmsg-"
-	sendMsgPrefix     = "sendmsg-"
-)
-
-func NewTraceId() string {
-	return Uuid()
-}
-
-func NewRecvMsgTraceId() string {
-	return recvMsgPrefix + Uuid()
-}
-
-func NewRecvBillMsgTraceId() string {
-	return recvBillMsgPrefix + Uuid()
-}
-
-func NewSendMsgTraceId() string {
-	return sendMsgPrefix + Uuid()
-}
-
-func GenBindId(id string, protocol string, port int32) string {
-	return id + "_" + strings.ToLower(protocol) + ":" + strconv.Itoa(int(port))
 }

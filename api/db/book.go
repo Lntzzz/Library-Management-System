@@ -3,6 +3,7 @@ package db
 import (
 	"Library-Management-System/api/model"
 	"database/sql"
+	"time"
 )
 
 var Book *BookDao
@@ -72,7 +73,7 @@ func (b *BookDao) Get(bookId string) (*model.Book, error) {
 	} else {
 		return &model.Book{}, sql.ErrNoRows
 	}
-
+	time.Sleep(10 * time.Millisecond)
 	return &book, nil
 }
 

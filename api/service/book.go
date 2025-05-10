@@ -51,7 +51,7 @@ func (b *BookService) Add(option *request.AddBookOption) (*response.AddBookRespo
 			return nil, xerror.ErrAddBookFailed
 		}
 	} else {
-		newBookId := idgen.NewBookId()
+		newBookId := idgen.GenBookId()
 		bookId = newBookId
 		book := model.Book{
 			Id:     newBookId,
