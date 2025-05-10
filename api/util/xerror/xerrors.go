@@ -33,6 +33,7 @@ var (
 	ErrInvalidUserInHeader Error = New4xxErr(http.StatusBadRequest, "User in request header invalid.")
 	ErrUnsupportedRegion   Error = New4xxErr(http.StatusBadRequest, "Unsupported region")
 
+	ErrInternalServer   Error = New5xxErr(http.StatusInternalServerError, "Internal error")
 	ErrBookNotFound     Error = New4xxErr(http.StatusNotFound, "Book not found")
 	ErrBookConflict     Error = New4xxErr(http.StatusConflict, "Book conflict")
 	ErrAddBookFailed    Error = New5xxErr(http.StatusInternalServerError, "Add book failed")

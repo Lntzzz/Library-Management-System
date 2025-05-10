@@ -92,9 +92,11 @@ func DescribeBorrowRecords(w http.ResponseWriter, r *http.Request) {
 }
 
 func SecKillBooks(w http.ResponseWriter, r *http.Request) {
-	bookId := mux.Vars(r)["bookId"] // 从 URL 中获取 bookId
-	option := &request.SecKillBookOption{
+	userId := r.PostFormValue("userId")
+	bookId := r.PostFormValue("bookId")
+	option := &request.SecKillBorrowRecordOption{
 		BookId: bookId,
+		UserId: userId,
 	}
 	ret, oe := service.Seckill.Seckill(option)
 	if oe != nil {

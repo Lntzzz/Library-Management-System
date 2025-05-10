@@ -8,3 +8,8 @@ const (
 const (
 	DefaultStock = 1
 )
+
+const (
+	SeckillSuccess = "success"
+	SeckillFailed  = "failed"
+)
