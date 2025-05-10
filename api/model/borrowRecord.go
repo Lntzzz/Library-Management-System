@@ -7,7 +7,6 @@ type BorrowRecord struct {
 	UserId     string    `db:"user_id" json:"userId"`
 	BookId     string    `db:"book_id" json:"bookId"`
 	BorrowedAt time.Time `db:"borrowed_at" json:"borrowedAt"`
-	ReturnedAt time.Time `db:"returned_at" json:"returnedAt"`
 	Status     int       `db:"status" json:"status"`
 	// 可选：续借次数
 	// RenewCount int        `db:"renew_count" json:"renewCount"`
@@ -41,15 +40,6 @@ func (record BorrowRecord) GetBorrowedAt() time.Time {
 
 func (record BorrowRecord) SetBorrowedAt(borrowedAt time.Time) BorrowRecord {
 	record.BorrowedAt = borrowedAt
-	return record
-}
-
-func (record BorrowRecord) GetReturnedAt() time.Time {
-	return record.ReturnedAt
-}
-
-func (record BorrowRecord) SetReturnedAt(returnedAt time.Time) BorrowRecord {
-	record.ReturnedAt = returnedAt
 	return record
 }
 

@@ -36,6 +36,7 @@ var (
 	ErrInternalServer   Error = New5xxErr(http.StatusInternalServerError, "Internal error")
 	ErrBookNotFound     Error = New4xxErr(http.StatusNotFound, "Book not found")
 	ErrBookConflict     Error = New4xxErr(http.StatusConflict, "Book conflict")
+	ErrInvalidBook      Error = New4xxErr(http.StatusBadRequest, "Invalid Book")
 	ErrAddBookFailed    Error = New5xxErr(http.StatusInternalServerError, "Add book failed")
 	ErrQueryBookFailed  Error = New5xxErr(http.StatusInternalServerError, "Query book failed")
 	ErrDeleteBookFailed Error = New5xxErr(http.StatusInternalServerError, "Delete book failed")

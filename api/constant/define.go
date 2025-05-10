@@ -13,3 +13,8 @@ const (
 	SeckillSuccess = "success"
 	SeckillFailed  = "failed"
 )
+
+const (
+	Borrowing = 1
+	Returned  = 2
+)

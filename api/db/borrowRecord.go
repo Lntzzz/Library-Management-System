@@ -10,8 +10,8 @@ var BorrowRecord *BorrowRecordDao
 type BorrowRecordDao struct{}
 
 func (b *BorrowRecordDao) Add(record model.BorrowRecord) error {
-	query := "INSERT INTO borrow_record (id, user_id, book_id, borrowed_at, returned_at, status) VALUES (?, ?, ?, ?, ?, ?)"
-	_, err := Db.Exec(query, record.Id, record.UserId, record.BookId, record.BorrowedAt, record.ReturnedAt, record.Status)
+	query := "INSERT INTO borrow_record (id, user_id, book_id, borrowed_at, status) VALUES (?, ?, ?, now(), ?)"
+	_, err := Db.Exec(query, record.Id, record.UserId, record.BookId, record.Status)
 	if err != nil {
 		return err
 	}
@@ -19,11 +19,11 @@ func (b *BorrowRecordDao) Add(record model.BorrowRecord) error {
 }
 
 func (b *BorrowRecordDao) Get(recordId string) (*model.BorrowRecord, error) {
-	query := "SELECT id, user_id, book_id, borrowed_at, returned_at, status FROM borrow_record WHERE id = ?"
+	query := "SELECT id, user_id, book_id, borrowed_at, status FROM borrow_record WHERE id = ?"
 	row := Db.QueryRow(query, recordId)
 
 	var record model.BorrowRecord
-	err := row.Scan(&record.Id, &record.UserId, &record.BookId, &record.BorrowedAt, &record.ReturnedAt, &record.Status)
+	err := row.Scan(&record.Id, &record.UserId, &record.BookId, &record.BorrowedAt, &record.Status)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
@@ -34,8 +34,8 @@ func (b *BorrowRecordDao) Get(recordId string) (*model.BorrowRecord, error) {
 }
 
 func (b *BorrowRecordDao) Update(record model.BorrowRecord) error {
-	query := "UPDATE borrow_record SET user_id = ?, book_id = ?, borrowed_at = ?, returned_at = ?, status = ? WHERE id = ?"
-	_, err := Db.Exec(query, record.UserId, record.BookId, record.BorrowedAt, record.ReturnedAt, record.Status, record.Id)
+	query := "UPDATE borrow_record SET user_id = ?, book_id = ?, borrowed_at = ?, status = ? WHERE id = ?"
+	_, err := Db.Exec(query, record.UserId, record.BookId, record.BorrowedAt, record.Status, record.Id)
 	if err != nil {
 		return err
 	}
@@ -49,4 +49,19 @@ func (b *BorrowRecordDao) Delete(recordId string) error {
 		return err
 	}
 	return nil
+}
+
+func (b *BorrowRecordDao) GetByBookIdAndUserId(bookId, userId string) (*model.BorrowRecord, error) {
+	query := "SELECT id, user_id, book_id, borrowed_at, status FROM borrow_record WHERE book_id = ? AND user_id = ?"
+	row := Db.QueryRow(query, bookId, userId)
+
+	var record model.BorrowRecord
+	err := row.Scan(&record.Id, &record.UserId, &record.BookId, &record.BorrowedAt, &record.Status)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, sql.ErrNoRows
+		}
+		return nil, err
+	}
+	return &record, nil
 }

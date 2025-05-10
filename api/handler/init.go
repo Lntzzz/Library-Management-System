@@ -41,7 +41,7 @@ func Init() *mux.Router {
 	// User路由配置
 
 	// SecKill路由配置
-	r.HandleFunc("/borrowRecords/secKill}", SecKillBooks)
+	r.HandleFunc("/borrowRecords/secKill", SecKillBooks)
 
 	return r
 }

@@ -41,3 +41,37 @@ func TestBookService_Add(t *testing.T) {
 		})
 	}
 }
+
+func TestBorrowRecordService_Create(t *testing.T) {
+	tests := []struct {
+		name  string
+		req   *request.CreateBorrowRecordOption
+		want1 xerror.OpenError
+	}{
+		{
+			name: "create borrow record",
+			req: &request.CreateBorrowRecordOption{
+				UserId: "user-01",
+				BookId: "book-uz24ng7dj8",
+			},
+			want1: nil,
+		},
+	}
+	s := &BorrowRecordService{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := s.Create(tt.req)
+			if tt.want1 != nil {
+				if got1 == nil || got1.Error() != tt.want1.Error() {
+					t.Fatalf("Create() oe = %v, want %v", got1, tt.want1)
+				}
+			} else {
+				if got1 != nil {
+					t.Fatalf("Create() got1 = [%d, %s, %s, %s], want %v",
+						got1.Code(), got1.Error(), got1.Message(), got1.Details(), tt.want1)
+				}
+			}
+			t.Logf("res: %v\n", util.JSONIgnoreErr(got))
+		})
+	}
+}
