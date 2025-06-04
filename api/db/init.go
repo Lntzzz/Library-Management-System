@@ -9,7 +9,7 @@ import (
 var Db *sql.DB
 
 func init() {
-	db, err := sql.Open("mysql", "root:995774@/book_manage_system")
+	db, err := sql.Open("mysql", "root:20030617@/book_manage_system")
 	if err != nil {
 		panic(err)
 	}

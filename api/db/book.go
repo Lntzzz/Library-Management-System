@@ -112,3 +112,17 @@ func (b *BookDao) IncreaseBookCount(id string) error {
 	}
 	return nil
 }
+
+func (b *BookDao) DecreaseBookCount(id string) error {
+	query := "update book set stock = stock - 1 where id = ?"
+	_, err := Db.Exec(query, id)
+	logBookStatus()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func logBookStatus() {
+	time.Sleep(500 * time.Millisecond) // 模拟日志记录延迟
+}

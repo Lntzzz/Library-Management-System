@@ -98,7 +98,7 @@ func SecKillBooks(w http.ResponseWriter, r *http.Request) {
 		BookId: bookId,
 		UserId: userId,
 	}
-	ret, oe := service.Seckill.Seckill(option)
+	ret, oe := service.Seckill.SeckillOld(option)
 	if oe != nil {
 		respUtil.Response(w, oe, nil)
 		return

@@ -2,12 +2,15 @@ package service
 
 import (
 	"Library-Management-System/api/constant"
+	"Library-Management-System/api/db"
 	"Library-Management-System/api/dto/request"
 	"Library-Management-System/api/dto/response"
 	"Library-Management-System/api/idgen"
-	"Library-Management-System/api/service/messages"
+	"Library-Management-System/api/model"
+	"Library-Management-System/api/util/session"
 	"Library-Management-System/api/util/xerror"
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -51,88 +54,146 @@ func (s *SeckillService) Seckill(option *request.SecKillBorrowRecordOption) (*re
 	stockKey := "book_stock:" + bookID
 	userSetKey := "book_users:" + bookID
 
-	// 检查库存是否充足
-	stock, err := s.RedisClient.Get(ctx, stockKey).Int()
+	//// 检查库存是否充足
+	//stock, err := s.RedisClient.Get(ctx, stockKey).Int()
+	//if err != nil {
+	//	return nil, xerror.ErrInternalServer.SetMessage("failed to get stock from redis: " + err.Error())
+	//}
+	//if stock <= 0 {
+	//	return nil, xerror.ErrInternalServer.SetMessage("stock not sufficient")
+	//}
+	//
+	//// 检查用户是否已下单
+	//isMember, err := s.RedisClient.SIsMember(ctx, userSetKey, userID).Result()
+	//if err != nil {
+	//	return nil, xerror.ErrInternalServer.SetMessage("failed to check user in redis: " + err.Error())
+	//}
+	//if isMember {
+	//	return nil, xerror.ErrInternalServer.SetMessage("user already placed an order")
+	//}
+	//
+	//// 扣减库存
+	//_, err = s.RedisClient.Decr(ctx, stockKey).Result()
+	//if err != nil {
+	//	return nil, xerror.ErrInternalServer.SetMessage("failed to decrement stock: " + err.Error())
+	//}
+	//
+	//// 将用户ID加入已下单集合
+	//_, err = s.RedisClient.SAdd(ctx, userSetKey, userID).Result()
+	//if err != nil {
+	//	return nil, xerror.ErrInternalServer.SetMessage("failed to add user to set: " + err.Error())
+	//}
+
+	script := `
+	local stockKey = KEYS[1]
+	local userSetKey = KEYS[2]
+	local userID = ARGV[1]
+	
+	-- 检查库存是否充足
+	local stock = tonumber(redis.call("GET", stockKey))
+	if not stock or stock <= 0 then
+	   return 1 -- 库存不足
+	end
+	
+	-- 检查用户是否已下单
+	local isMember = redis.call("SISMEMBER", userSetKey, userID)
+	if isMember == 1 then
+	   return 2 -- 用户已下单
+	end
+	
+	-- 扣减库存
+	redis.call("DECR", stockKey)
+	
+	-- 将用户ID加入已下单集合
+	redis.call("SADD", userSetKey, userID)
+	
+	return 0 -- 正常结束操作
+	`
+
+	result, err := s.RedisClient.Eval(ctx, script, []string{stockKey, userSetKey}, userID).Int()
 	if err != nil {
-		return nil, xerror.ErrInternalServer.SetMessage("failed to get stock from redis: " + err.Error())
+		return nil, xerror.ErrInternalServer.SetMessage("failed to execute lua script: " + err.Error())
 	}
-	if stock <= 0 {
+
+	switch result {
+	case 1:
+		return nil, xerror.ErrInternalServer.SetMessage("stock not sufficient")
+	case 2:
+		return nil, xerror.ErrInternalServer.SetMessage("user already placed an order")
+	case 0:
+		// 正常结束操作
+	}
+
+	// 构造消息并发送到 Kafka
+	//message := messages.SeckillMessage{
+	//	Id:     idgen.GenBorrowRecordId(),
+	//	UserID: userID,
+	//	BookID: bookID,
+	//	Time:   time.Now().Format(time.RFC3339),
+	//}
+	//messages.GetSecKillProducer().Send(&message)
+	//return &response.SecKillBorrowRecordResponse{BorrowRecordId: message.Id, SecKillResult: constant.SeckillSuccess}, nil
+	return &response.SecKillBorrowRecordResponse{BorrowRecordId: idgen.GenBorrowRecordId(), SecKillResult: constant.SeckillSuccess}, nil
+}
+
+func (s *SeckillService) SeckillOld(option *request.SecKillBorrowRecordOption) (*response.SecKillBorrowRecordResponse, xerror.OpenError) {
+
+	// 检查库存是否充足
+	bookID := option.BookId
+	book, err := db.Book.Get(bookID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, xerror.ErrBookNotFound
+		}
+		return nil, xerror.ErrInternalServer.SetMessage("failed to get book: " + err.Error())
+	}
+	if book == nil {
+		return nil, xerror.ErrBookNotFound
+	}
+	logBookStatus(bookID)
+	if book.Stock <= 0 {
 		return nil, xerror.ErrInternalServer.SetMessage("stock not sufficient")
 	}
 
 	// 检查用户是否已下单
-	isMember, err := s.RedisClient.SIsMember(ctx, userSetKey, userID).Result()
-	if err != nil {
-		return nil, xerror.ErrInternalServer.SetMessage("failed to check user in redis: " + err.Error())
+	userID := option.UserId
+	user, err := db.BorrowRecord.GetByBookIdAndUserId(bookID, userID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, xerror.ErrInternalServer.SetMessage("failed to check user order: " + err.Error())
 	}
-	if isMember {
+	if user != nil {
 		return nil, xerror.ErrInternalServer.SetMessage("user already placed an order")
 	}
 
 	// 扣减库存
-	_, err = s.RedisClient.Decr(ctx, stockKey).Result()
+	err = db.Book.DecreaseBookCount(bookID)
 	if err != nil {
 		return nil, xerror.ErrInternalServer.SetMessage("failed to decrement stock: " + err.Error())
 	}
-
 	// 将用户ID加入已下单集合
-	_, err = s.RedisClient.SAdd(ctx, userSetKey, userID).Result()
+	bookRecord := model.BorrowRecord{
+		Id:         idgen.GenBorrowRecordId(),
+		UserId:     userID,
+		BookId:     bookID,
+		BorrowedAt: time.Now(),
+	}
+	err = db.BorrowRecord.Add(bookRecord)
 	if err != nil {
-		return nil, xerror.ErrInternalServer.SetMessage("failed to add user to set: " + err.Error())
+		return nil, xerror.ErrInternalServer.SetMessage("failed to add borrow record: " + err.Error())
 	}
 
-	//	script := `
-	//local stockKey = KEYS[1]
-	//local userSetKey = KEYS[2]
-	//local userID = ARGV[1]
-	//
-	//-- 检查库存是否充足
-	//local stock = tonumber(redis.call("GET", stockKey))
-	//if not stock or stock <= 0 then
-	//    return 1 -- 库存不足
-	//end
-	//
-	//-- 检查用户是否已下单
-	//local isMember = redis.call("SISMEMBER", userSetKey, userID)
-	//if isMember == 1 then
-	//    return 2 -- 用户已下单
-	//end
-	//
-	//-- 扣减库存
-	//redis.call("DECR", stockKey)
-	//
-	//-- 将用户ID加入已下单集合
-	//redis.call("SADD", userSetKey, userID)
-	//
-	//return 0 -- 正常结束操作
-	//`
-	//
-	//	stockKey := "book_stock:" + bookID
-	//	userSetKey := "book_users:" + bookID
-	//
-	//	result, err := s.RedisClient.Eval(ctx, script, []string{stockKey, userSetKey}, userID).Int()
-	//	if err != nil {
-	//		return nil, xerror.ErrInternalServer.SetMessage("failed to execute lua script: " + err.Error())
-	//	}
-	//
-	//	switch result {
-	//	case 1:
-	//		return nil, xerror.ErrInternalServer.SetMessage("stock not sufficient")
-	//	case 2:
-	//		return nil, xerror.ErrInternalServer.SetMessage("user already placed an order")
-	//	case 0:
-	//		// 正常结束操作
-	//	}
+	return &response.SecKillBorrowRecordResponse{BorrowRecordId: bookRecord.Id, SecKillResult: constant.SeckillSuccess}, nil
+}
 
-	// 构造消息并发送到 Kafka
-	message := messages.SeckillMessage{
-		Id:     idgen.GenBorrowRecordId(),
-		UserID: userID,
-		BookID: bookID,
-		Time:   time.Now().Format(time.RFC3339),
+func logBookStatus(bookId string) {
+	switch bookId {
+	case "book-43b3q5oxed":
+		session.LogBookStatus1()
+	case "book-cej72fmcny":
+		session.LogBookStatus2()
+	case "book-w2otucp9p9":
+		session.LogBookStatus3()
 	}
-	messages.GetSecKillProducer().Send(&message)
-	return &response.SecKillBorrowRecordResponse{BorrowRecordId: message.Id, SecKillResult: constant.SeckillSuccess}, nil
 }
 
 //func (s *SeckillService) KafkaConsumerSetup() {

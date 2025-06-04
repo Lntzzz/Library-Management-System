@@ -69,7 +69,8 @@ func DescribeBook(w http.ResponseWriter, r *http.Request) {
 	option := &request.DescribeBookOption{
 		Id: bookId,
 	}
-	ret, oe := service.Book.DescribeWithCache(option)
+	// ret, oe := service.Book.DescribeWithCache(option)
+	ret, oe := service.Book.Describe(option)
 	if oe != nil {
 		respUtil.Response(w, oe, nil)
 		return
